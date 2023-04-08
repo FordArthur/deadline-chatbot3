@@ -22,7 +22,8 @@
   \"boom [player]\" - kill player with an explosion
   \"boom near [player]\" - explosion near the player (non-lethal)
   \"tp [player] here\" or \"tp to [player]\" or \"tp [player1] to [player2]\"
-  \"plant\" - plant claymore where you stand"
+  \"plant\" - plant claymore where you stand
+  \"ammo\" - sets your number of mags to full (primary and secundary)"
   mode-presets "Gamemodes avialable:
   domination
   koth
@@ -111,7 +112,7 @@
   (var player-perms (if (= player|all "all") (.. .. dict (for #(vec % su|nu) (keys player-perms))) (set-at [player|all] su|nu player-perms)))
   (str "=> " ((zero? su|nu) "Demoted" "Promoted") " -> " player|all))
 
-(function perms-cmds cmd (var! nosu-cmds (append cmd)) (str cmd " is accessible to all"))
+(function perms-cmds cmd|all (if (!= cmd|all "all") (var! nosu-cmds (append cmd|all)) (str cmd|all " is accessible to all") (var nosu-cmds ["cmds" "heal" "team" "tp" "boom" "flare" "brrrt" "drone" "plant" "mode" "map" "light" "camera" "ascend" "ascend" "descend" "no-su-cmds" "reset-cmds"])))
 (function resetcmds (var nosu-cmds []) (str "all commands are super-user only"))
 
 (function refresh-perms player
@@ -123,6 +124,9 @@
 (function change-maps maps (catch (dl.util.set_map maps) (return "Uknown map")) (str "Successfully changed map -> " maps))
 (function change-lighting light (catch (dl.util.set_preset light) (return "Uknown preset")) (str "Successfully changed preset -> " light))
 (function change-camera mode player (let amode (str (upper-case (0 mode)) (sect mode))) (catch ((str "dl.players." player ".set_camera_mode") amode) (return "Uknown camera mode and/or uknown player")) (str "Successfully changed camera mode -> " mode " of -> " player))
+
+(function more-ammo player ((str "dl.players." player ".fill_ammo") "primary") ((str "dl.players." player ".fill_ammo") "secundary"))
+
 ;rtdm, WIP
 
 ;(function rnd-spawn player (eval (str "dl.players." player ".position" ())))
