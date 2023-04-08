@@ -1,0 +1,296 @@
+(var cmds "Examples: \"heal XxPlayerxX\" or \"heal Xx\"
+  \"cmds [topic]\" - display this, or, if filled with a topic, display information about that topic
+  Topic:
+  -> modes
+  -> maps
+  -> lighting-presets
+  -> camera-modes
+  \"mode [game mode]\" - changes your game mode to the one you set
+  \"map [map]\" - changes the map to the one you set
+  \"light [light preset]\" - changes the light preset to the one you set
+  \"camera-mode [mode] [player] \" - changes the camera mode of a player
+  \"ascend [player]\" - makes a player able to execute commands
+  \"descend [player]\" - makes a player unable to execute commands
+  \"no-su-cmds [command]\" - makes a command unprivileged (everyone can execute it)
+  \"su-cmds\" - makes EVERY command privileged
+  ;you can use \"all\" as a subject to \"ascend\", \"descend\", \"no-su-cmds\", this applies it to every player or command
+  \"team security [player]\" or \"team insurgent [player]\" - switch someone to either team, if in blank it will switch the sender
+  \"heal\" or \"heal [player]\" - heal you or a player fully
+  \"drone\" or \"drone [player]\" - drone strike on your or player
+  \"brrrt [player]\" - airstrike on player
+  \"flare\" or \"flare [player]\" - fire a flare above yourself or player
+  \"boom [player]\" - kill player with an explosion
+  \"boom near [player]\" - explosion near the player (non-lethal)
+  \"tp [player] here\" or \"tp to [player]\" or \"tp [player1] to [player2]\"
+  \"plant\" - plant claymore where you stand"
+  mode-presets "Gamemodes avialable:
+  domination
+  koth
+  push_waves
+  push_tickets
+  none
+  example
+  tdm
+  rtdm ; not in API, also not included yet, check the repo if you want to know more"
+  maps "Maps avialale:
+  ;;; It appears the names has changed, If you happen to know the new names of the claustrophobic maps report them
+  demo_baseplate
+  demo_claustrophobic_v3
+  demo_claustrophobic_v4
+  dl_shooting_range
+  dl_afghanistan
+  dl_shipment"
+  lighting-presets "Lighting presets avialable:
+  blank
+  foggy
+  day
+  spooktober
+  darkworld
+  dl_baseplate
+  dl_builder
+  demo_claustrophobic_lighting
+  dl_afghanistan_morning
+  dl_shipment"
+  camera-modes "Camera modes avialable:
+  Default
+  Freecam
+  Frozen
+  Tperson"
+  player-perms (-> (dl.list_players) (map #{% 0}) (reduce into))
+  nosu-cmds ["ascend"])
+
+(function player-perms? player perm
+  ((player-perms player) perm))
+
+(function rand-circle-point position radius
+  (var r radius)
+  (-> (rand (* 2 PI))
+      (fn a [(cos a) 0 (sin a)])
+      (map (* r))
+     @(map + position)))
+
+(function is-near? x0 y0 z0 x1 y1 z1 dist
+  (> dist (sqrt
+    (+ (** (- x0 x1))
+       (** (- y0 y1))
+       (** (- z0 z1))))))
+
+(function n. name
+  (var n name)
+  (find (fn p (.. starts? (map lower-case [n p])))
+        (alive-players)))
+
+(function alive-players
+  (filter #((str "dl.players." % ".is_alive"))
+          (dl.list_players)))
+
+(function grenade pos
+  (dl.util.explosion pos "TestGrenade"))
+
+(var props {:pos "position" :team "team" :hp "health"})
+(function plr who key value
+  (let prop (props key)
+       evar (str "dl.players." who))
+  (if (= key :alive?)
+      (return ((str "dl.players." who ".is_alive"))))
+  (catch
+    (if value
+      (do ((str "$" evar "." prop) value) :success)
+      (prop evar))
+    (print "plr errors: " errors)))
+
+(function help-handle topic 
+  (match topic
+    "modes"             mode-presets
+    "maps"              maps
+    "lighting-presets"  lighting-presets
+    "camera-modes"      camera-modes
+    _                   "not a topic"))
+
+(function perm-handle player|all su|nu
+  (var player-perms (if (= player|all "all") (.. .. dict (for #(vec % su|nu) (keys player-perms))) (set-at [player|all] su|nu player-perms)))
+  (str "=> " ((zero? su|nu) "Demoted" "Promoted") " -> " player|all))
+
+(function perms-cmds cmd (var! nosu-cmds (append cmd)) (str cmd " is accessible to all"))
+(function resetcmds (var nosu-cmds []) (str "all commands are super-user only"))
+
+(function refresh-perms player
+  (if (-> player player-perms !) (var! player-perms @(assoc (to-key player) 0))))
+(dl.events.on_player_spawned.connect refresh-perms)
+
+;(function change-game mode ((= mode "rtdm") (rtdm) (catch (eval (str "(dl.util.set_gamemode \"" mode "\")")) (dl.util.fmessage "Uknown gamemode"))))
+(function change-game mode (catch (dl.util.set_gamemode mode) (return "Uknown mode")) (str "Successfully changed mode -> " mode)) ;will use this simplified function until rtdm works
+(function change-maps maps (catch (dl.util.set_map maps) (return "Uknown map")) (str "Successfully changed map -> " maps))
+(function change-lighting light (catch (dl.util.set_preset light) (return "Uknown preset")) (str "Successfully changed preset -> " light))
+(function change-camera mode player (let amode (str (upper-case (0 mode)) (sect mode))) (catch ((str "dl.players." player ".set_camera_mode") amode) (return "Uknown camera mode and/or uknown player")) (str "Successfully changed camera mode -> " mode " of -> " player))
+;rtdm, WIP
+
+;(function rnd-spawn player (eval (str "dl.players." player ".position" ())))
+
+;(function rtdm
+;  (dl.util.set_gamemode "tdm")
+;  (dl.events.on_player_spawned.connect rnd-player)
+;)
+
+(function monologue messages delay
+  (var d (or delay 1))
+  (map (fn msg (dl.util.fmessage msg)
+               (wait d))
+       messages))
+
+(function teleport from to
+  (let pos (plr to :pos))
+  (if! pos (return))
+  (if (plr from :pos pos)
+      (str from " teleported to " to)))
+
+(function heal who
+  (if (plr who :hp 100)
+      (str "Healed " who)))
+
+(function team-cmd who team-name
+  (let name ((starts? "i" team-name) "insurgent" "security"))
+  (if (plr who :team name)
+      (str who " now " name)))
+
+(function boom who is-near
+  (let pos (plr who :pos))
+  (if! pos (return))
+  (-> (is-near (rand-circle-point pos 48) pos)
+     #(dl.util.explosion % "TestGrenade"))
+  (str "Exploded " (if is-near "near " "") who))
+
+(function flare who
+  (-> (plr who :pos)
+     @(map + [0 100 0])
+      (fn pos (dl.util.explosion pos "TestGrenade")))
+  (str "Fired flare above " who))
+
+(function brrr who
+  (if! (plr who :alive?) (return))
+  (monologue [
+    (str "Airstrike target locked: " who)
+    "Coming in hot in 5" "4" "3" "2..."])
+  (wait 1)
+  (let pos (plr who :pos))
+  (let i 0)
+  (while (< i 100)
+    (let! i inc)
+    (wait .01)
+    (-> [(rand 10) 0 (rand 10)]
+       @(map + [(- (* i 2) 100) 0 0] pos)
+        grenade))
+  (str who " has been brrr'd."))
+
+(function drone who
+  (if! (plr who :alive?) (return))
+  (let pos (plr who :pos))
+  (monologue [
+    (str "Position locked: " who)
+    "Drone strike in 4" "3" "2..."
+  ])
+  (wait 1)
+  (let i 0 lim (rand 5 10))
+  (while (< i lim)
+    (let! i inc)
+    (wait .25)
+    (-> [(rand -50 50) 30 (rand -50 50)]
+       @(map + pos)
+        grenade))
+  "Drone strike complete.")
+
+;;;;; claymores
+; (monologue (map plant (alive-players)) .1)
+
+;{[x y z] {:team name :by name}}
+(if! ((symbols) "plants")
+  (var plants {}))
+
+(function plant who
+  (let pos (plr who :pos))
+  (if! pos (return))
+  (var! plants into {pos {:team (plr who :team) :by who}})
+  (str "Claymore planted by " who ". " (len plants) " set."))
+
+(function player-claymore player claymore
+  (let [plant-pos info] claymore
+       player-pos       (plr player :pos)
+       player-team      (plr player :team)
+       plant-team       (:team info))
+  (when (and (.. is-near? plant-pos player-pos 30)
+             (!= player-team plant-team))
+    (var! plants push plant-pos)
+    (grenade plant-pos)
+    (var p player b (:by info))
+    (-> (str (len plants) " left.")
+       @(str p " tripped " b "'s claymore! ")
+        fmessage)))
+
+(function on-tick
+  ;check for players near claymores
+  (for player-claymore (alive-players) plants))
+
+(ticked.kill)
+(ticked.connect on-tick)
+;;;;;
+
+(function both-false? a b (= a b false))
+(function bool b (if b true false))
+
+(function command sender msg
+  (var parts (split " " (lower-case msg))
+       [a b c d] parts)
+  (if (both-false? (bool (nosu-cmds a)) (= 1 (player-perms sender))) (return :not-a-command))
+  (match parts
+    ["cmds"]          cmds
+    ["cmds" _]        (help-handle b)
+    ["heal"]          (heal sender)
+    ["heal" _]        (heal (n. b))
+    ["team" _]        (team-cmd sender b)
+    ["team"]          (str sender " is " (plr sender :team))
+    ["tp" _ "here"]   (teleport (n. b) sender)
+    ["tp" _ "to" _]   (teleport (n. b) (n. d))
+    ["tp" "to" _]     (teleport sender (n. c))
+    ["boom" "near" _] (boom (n. c) true)
+    ["boom" _]        (boom (n. b) false)
+    ["flare"]         (flare sender)
+    ["flare" _]       (flare (n. b))
+    ["brrrt" _]       (brrr (n. b))
+    ["drone"]         (drone sender)
+    ["drone" _]       (drone (n. b))
+    ["plant"]         (plant sender)
+    ["mode" _]        (change-game b)
+    ["map" _]         (change-maps b)
+    ["light" _]       (change-lighting b)
+    ["camera" _ _]    (change-camera b (n. c))
+    ["camera" _]      (change-camera b sender)
+    ["ascend" "all"]  (perm-handle "all" 1)
+    ["ascend" _]      (perm-handle (n. b) 1)
+    ["descend" _]     (perm-handle (n. b) 0)
+    ["descend" "all"] (perm-handle "all" 0)
+    ["no-su-cmds" _]  (perms-cmds b)
+    ["reset-cmds"]    (resetcmds)
+    :not-a-command))
+
+(function fmessage m (print m) (dl.util.fmessage m))
+
+(function on-message sender _ msg
+    (let result (command sender msg))
+    (when (!= result :not-a-command)
+      (fmessage
+        (if (starts? "(" msg)
+          (or result "Didn't work, try again")))))
+
+(dl.events.on_chat_message.kill)
+(dl.events.on_chat_message.connect on-message)
+(dl.util.fmessage "Loaded Insitux chatbot! Chat \"cmds\" to see list of available commands.
+Note: this is a CHAT bot, you send the commands in the chat")
+
+(function on-message sender _ msg
+  (let result (command sender msg))
+  (when (!= result :not-a-command)
+     (fmessage
+      (if (starts? "(" msg)
+        (catch (eval msg) errors)
+        (or result "Didn't work, try again")))))
+
