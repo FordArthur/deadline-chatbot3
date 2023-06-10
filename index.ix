@@ -8,7 +8,7 @@
   \"mode [game mode]\" - changes your game mode to the one you set
   \"map [map]\" - changes the map to the one you set
   \"light [light preset]\" - changes the light preset to the one you set
-  \"camera-mode [mode] [player] \" - changes the camera mode of a player
+  \"camera [mode] [player] \" - changes the camera mode of a player
   \"ascend [player]\" - makes a player able to execute commands
   \"descend [player]\" - makes a player unable to execute commands
   \"no-su-cmds [command]\" - makes a command unprivileged (everyone can execute it)
@@ -60,9 +60,6 @@
   player-perms (-> (dl.list_players) (map #{% 0}) (reduce into))
   nosu-cmds ["ascend"])
 
-(function player-perms? player perm
-  ((player-perms player) perm))
-
 (function rand-circle-point position radius
   (var r radius)
   (-> (rand (* 2 PI))
@@ -112,29 +109,32 @@
   (var player-perms (if (= player|all "all") (.. .. dict (for #(vec % su|nu) (keys player-perms))) (set-at [player|all] su|nu player-perms)))
   (str "=> " ((zero? su|nu) "Demoted" "Promoted") " -> " player|all))
 
-(function perms-cmds cmd|all (if (!= cmd|all "all") (var! nosu-cmds (append cmd|all)) (str cmd|all " is accessible to all") (var nosu-cmds ["cmds" "heal" "team" "tp" "boom" "flare" "brrrt" "drone" "plant" "mode" "map" "light" "camera" "ascend" "ascend" "descend" "no-su-cmds" "reset-cmds"])))
+(function perms-cmds cmd|all (if (!= cmd|all "all") ((var! nosu-cmds (append cmd|all)) (str cmd|all " is accessible to all")) ((var nosu-cmds ["cmds" "heal" "team" "tp" "boom" "flare" "brrrt" "drone" "plant" "mode" "map" "light" "camera" "ascend" "ascend" "descend" "no-su-cmds" "reset-cmds"]) "all functions are accessible to all")))
 (function resetcmds (var nosu-cmds []) (str "all commands are super-user only"))
 
 (function refresh-perms player
   (if (-> player player-perms !) (var! player-perms @(assoc (to-key player) 0))))
 (dl.events.on_player_spawned.connect refresh-perms)
 
-;(function change-game mode ((= mode "rtdm") (rtdm) (catch (eval (str "(dl.util.set_gamemode \"" mode "\")")) (dl.util.fmessage "Uknown gamemode"))))
-(function change-game mode (catch (dl.util.set_gamemode mode) (return "Uknown mode")) (str "Successfully changed mode -> " mode)) ;will use this simplified function until rtdm works
+(function change-game mode (dl.events.on_player_spawned.kill rnd-player) ((= mode "rtdm") (rtdm) (catch (eval (str "(dl.util.set_gamemode \"" mode "\")")) (dl.util.fmessage "Uknown gamemode"))))
+(function change-game mode (catch (dl.util.set_gamemode mode) (return "Uknown mode")) (str "Successfully changed mode -> " mode)) 
 (function change-maps maps (catch (dl.util.set_map maps) (return "Uknown map")) (str "Successfully changed map -> " maps))
 (function change-lighting light (catch (dl.util.set_preset light) (return "Uknown preset")) (str "Successfully changed preset -> " light))
 (function change-camera mode player (let amode (str (upper-case (0 mode)) (sect mode))) (catch ((str "dl.players." player ".set_camera_mode") amode) (return "Uknown camera mode and/or uknown player")) (str "Successfully changed camera mode -> " mode " of -> " player))
 
 (function more-ammo player ((str "dl.players." player ".fill_ammo") "primary") ((str "dl.players." player ".fill_ammo") "secundary"))
 
-;rtdm, WIP
 
-;(function rnd-spawn player (eval (str "dl.players." player ".position" ())))
+(function move p c (eval (str "($dl.players." p ".position " c ")")))
+(function rnd-spawn player (move player [(rand-int -241 91) 325.27252197265625 (rand-int -560 -123)]))
 
-;(function rtdm
-;  (dl.util.set_gamemode "tdm")
-;  (dl.events.on_player_spawned.connect rnd-player)
-;)
+
+(function rtdm
+  (dl.util.set_gamemode "tdm")
+  ($dl.globals.team_kill true)
+  (dl.util.set_map "demo_claustrophobic_v4")
+  (dl.events.on_player_spawned.connect rnd-spawn))
+
 
 (function monologue messages delay
   (var d (or delay 1))
@@ -274,6 +274,8 @@
     ["descend" "all"] (perm-handle "all" 0)
     ["no-su-cmds" _]  (perms-cmds b)
     ["reset-cmds"]    (resetcmds)
+    ["ammo" _]        (more-ammo (n. b))
+    ["ammo"]          (more-ammo sender)
     :not-a-command))
 
 (function fmessage m (print m) (dl.util.fmessage m))
@@ -297,4 +299,3 @@ Note: this is a CHAT bot, you send the commands in the chat")
       (if (starts? "(" msg)
         (catch (eval msg) errors)
         (or result "Didn't work, try again")))))
-
