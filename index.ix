@@ -132,6 +132,7 @@
 (function rtdm
   (dl.util.set_gamemode "tdm")
   ($dl.globals.team_kill true)
+  ($dl.globals.enable_player_markers false)
   (dl.util.set_map "demo_claustrophobic_v4")
   (dl.events.on_player_spawned.connect rnd-spawn))
 
@@ -289,8 +290,11 @@
 
 (dl.events.on_chat_message.kill)
 (dl.events.on_chat_message.connect on-message)
+(dl.events.on_chat_message.connect starting-script)
 (dl.util.fmessage "Loaded Insitux chatbot! Chat \"cmds\" to see list of available commands.
-Note: this is a CHAT bot, you send the commands in the chat")
+Note: this is a CHAT bot, you send the commands in the chat
+You first need to give yourself permissions, do you wish to either:
+1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)")
 
 (function on-message sender _ msg
   (let result (command sender msg))
@@ -299,3 +303,12 @@ Note: this is a CHAT bot, you send the commands in the chat")
       (if (starts? "(" msg)
         (catch (eval msg) errors)
         (or result "Didn't work, try again")))))
+
+(function starting-script sender _ msg
+  (let finish-script #(do (perm-handle % 1) (dl.events.on_chat_message.kill starting-script)))
+  (when ((alive-players) sender)
+    (match msg
+      "1"    (finish-script sender)
+      "2"    (finish-script "all")
+      "3"    (do (dl.events.on_chat_message.kill starting-script) (dl.util.fmessage"remember to ascend someone later to use the chatbot!"))
+      (dl.util.fmessage "You first need to give yourself permissions, do you wish to either:\n1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)"))))
