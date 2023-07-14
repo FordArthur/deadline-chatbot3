@@ -295,16 +295,15 @@
       (if (starts? "(" msg)
         (catch (eval msg) errors)
         (or result "Didn't work, try again")))))
-
+(var sscript-alive? true)
 (function start-script sender _ msg
-  (var sscript-alive? true)
   (let finish-script #(do (perm-handle % 1) (var! sscript-alive? !)))
   (when (and ((alive-players) sender) sscript-alive?)
     (match msg
       "1"    (finish-script sender)
       "2"    (finish-script "all")
       "3"    (do (var! sscript-alive? !) (dl.util.fmessage"remember to ascend someone later to use the chatbot!"))
-      (dl.util.fmessage "You first need to give yourself permissions, do you wish to either:\n1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)"))))
+      (dl.util.fmessage "You first need to give yourself permissions, do you wish to either:\n1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command"))))
 
 (dl.events.on_chat_message.kill)
 (dl.events.on_chat_message.connect on-message)
@@ -312,4 +311,4 @@
 Note: this is a CHAT bot, you send the commands in the chat
 You first need to give yourself permissions, do you wish to either:
 1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)")
-(dl.events.on_chat_message.connect sc)
+(dl.events.on_chat_message.connect start-script)
