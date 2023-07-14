@@ -288,14 +288,6 @@
         (if (starts? "(" msg)
           (or result "Didn't work, try again")))))
 
-(dl.events.on_chat_message.kill)
-(dl.events.on_chat_message.connect on-message)
-(dl.events.on_chat_message.connect starting-script)
-(dl.util.fmessage "Loaded Insitux chatbot! Chat \"cmds\" to see list of available commands.
-Note: this is a CHAT bot, you send the commands in the chat
-You first need to give yourself permissions, do you wish to either:
-1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)")
-
 (function on-message sender _ msg
   (let result (command sender msg))
   (when (!= result :not-a-command)
@@ -304,11 +296,20 @@ You first need to give yourself permissions, do you wish to either:
         (catch (eval msg) errors)
         (or result "Didn't work, try again")))))
 
-(function starting-script sender _ msg
-  (let finish-script #(do (perm-handle % 1) (dl.events.on_chat_message.kill starting-script)))
-  (when ((alive-players) sender)
+(function start-script sender _ msg
+  (var sscript-alive? true)
+  (let finish-script #(do (perm-handle % 1) (var! sscript-alive? !)))
+  (when (and ((alive-players) sender) sscript-alive?)
     (match msg
       "1"    (finish-script sender)
       "2"    (finish-script "all")
-      "3"    (do (dl.events.on_chat_message.kill starting-script) (dl.util.fmessage"remember to ascend someone later to use the chatbot!"))
+      "3"    (do (var! sscript-alive? !) (dl.util.fmessage"remember to ascend someone later to use the chatbot!"))
       (dl.util.fmessage "You first need to give yourself permissions, do you wish to either:\n1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)"))))
+
+(dl.events.on_chat_message.kill)
+(dl.events.on_chat_message.connect on-message)
+(dl.util.fmessage "Loaded Insitux chatbot! Chat \"cmds\" to see list of available commands.
+Note: this is a CHAT bot, you send the commands in the chat
+You first need to give yourself permissions, do you wish to either:
+1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)")
+(dl.events.on_chat_message.connect sc)
