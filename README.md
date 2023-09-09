@@ -6,6 +6,7 @@ Do, in the console:
 
 ```clj
 (load "https://fordarthur.github.io/deadline-chatbot3/index.ix")
+(dl.events.on_chat_message.connect start-script)
 ```
 
 *or, just copy index.ix to your console*
