@@ -5,7 +5,7 @@
 Do, in console:
 
 ```clj
-(load "https://fordfrthur.github.io/deadline-chatbot3") ; loads the chatbot into your game
+(load "https://fordfrthur.github.io/deadline-chatbot3/index.ix") ; loads the chatbot into your game
 ```
 
 *or, just copy index.ix to your console*
