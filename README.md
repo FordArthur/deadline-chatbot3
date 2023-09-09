@@ -2,10 +2,10 @@
 
 ## Getting started
 
-Do, in console:
+Do, in the console:
 
 ```clj
-(load "https://fordfrthur.github.io/deadline-chatbot3/index.ix") ; loads the chatbot into your game
+(load "https://fordarthur.github.io/deadline-chatbot3/index.ix")
 ```
 
 *or, just copy index.ix to your console*
