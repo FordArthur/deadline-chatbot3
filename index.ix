@@ -194,6 +194,7 @@
     (str "Position locked: " who)
     "Drone strike in 4" "3" "2..."
   ])
+  
   (wait 1)
   (let i 0 lim (rand 5 10))
   (while (< i lim)
@@ -297,8 +298,8 @@
         (or result "Didn't work, try again")))))
 (var sscript-alive? true)
 (function start-script sender _ msg
-  (let finish-script #(do (perm-handle % 1) (var! sscript-alive? !)))
-  (when (and ((alive-players) sender) sscript-alive?)
+  (let finish-script #(do (dl.util.fmessage (str "successful promotion")) (dl.util.fmessage "finishing script...")(perm-handle % 1) (var! sscript-alive? !)))
+  (when (and sscript-alive? ((dl.list_players) sender))
     (match msg
       "1"    (finish-script sender)
       "2"    (finish-script "all")
@@ -307,8 +308,8 @@
 
 (dl.events.on_chat_message.kill)
 (dl.events.on_chat_message.connect on-message)
+(dl.events.on_chat_message.connect start-script)
 (dl.util.fmessage "Loaded Insitux chatbot! Chat \"cmds\" to see list of available commands.
 Note: this is a CHAT bot, you send the commands in the chat
 You first need to give yourself permissions, do you wish to either:
 1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command)")
-(dl.events.on_chat_message.connect start-script)
