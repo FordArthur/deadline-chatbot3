@@ -248,7 +248,7 @@
        [a b c d] parts)
   (if (both-false? (bool (nosu-cmds a)) (= 1 (player-perms sender))) (return :not-a-command))
   (match parts
-    ["cmds"]          cmds
+    ["cmds"]          (dl.util.fmessage cmds)
     ["cmds" _]        (help-handle b)
     ["heal"]          (heal sender)
     ["heal" _]        (heal (n. b))
@@ -288,6 +288,7 @@
       (fmessage
         (if (starts? "(" msg)
           (or result "Didn't work, try again")))))
+          
 (var sscript-alive? true)
 (function start-script sender _ msg
   (let finish-script #(do (dl.util.fmessage (str "successful promotion")) (dl.util.fmessage (str cmds "\nfinishing script..."))(perm-handle % 1) (var! sscript-alive? !)))
