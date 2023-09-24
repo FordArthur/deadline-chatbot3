@@ -298,12 +298,12 @@
         (or result "Didn't work, try again")))))
 (var sscript-alive? true)
 (function start-script sender _ msg
-  (let finish-script #(do (dl.util.fmessage (str "successful promotion")) (dl.util.fmessage "finishing script...")(perm-handle % 1) (var! sscript-alive? !)))
+  (let finish-script #(do (dl.util.fmessage (str "successful promotion")) (dl.util.fmessage (str cmds "\nfinishing script..."))(perm-handle % 1) (var! sscript-alive? !)))
   (when (and sscript-alive? ((dl.list_players) sender))
     (match msg
       "1"    (finish-script sender)
       "2"    (finish-script "all")
-      "3"    (do (var! sscript-alive? !) (dl.util.fmessage"remember to ascend someone later to use the chatbot!"))
+      "3"    (do (var! sscript-alive? !) (dl.util.fmessage "remember to ascend someone later to use the chatbot!"))
       (dl.util.fmessage "You first need to give yourself permissions, do you wish to either:\n1 ascend yourself, 2 ascend everyone, 3 skip for now (you can do this later via the ascend command"))))
 
 (dl.events.on_chat_message.kill)
