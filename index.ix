@@ -283,19 +283,11 @@
 (function fmessage m (print m) (dl.util.fmessage m))
 
 (function on-message sender _ msg
-    (let result (command sender msg))
+  (let result (command sender msg))
     (when (!= result :not-a-command)
       (fmessage
         (if (starts? "(" msg)
           (or result "Didn't work, try again")))))
-
-(function on-message sender _ msg
-  (let result (command sender msg))
-  (when (!= result :not-a-command)
-     (fmessage
-      (if (starts? "(" msg)
-        (catch (eval msg) errors)
-        (or result "Didn't work, try again")))))
 (var sscript-alive? true)
 (function start-script sender _ msg
   (let finish-script #(do (dl.util.fmessage (str "successful promotion")) (dl.util.fmessage (str cmds "\nfinishing script..."))(perm-handle % 1) (var! sscript-alive? !)))
